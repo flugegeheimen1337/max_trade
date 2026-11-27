@@ -9,6 +9,7 @@ from typing import Any
 
 from core.constants import (
     ALLOWED_EXCHANGES,
+    DEFAULT_EXCHANGE,
     ALLOWED_PAIRS,
     API_CONTAINER_PORT,
     API_LISTEN,
@@ -39,7 +40,7 @@ class LabSettings:
 
     @classmethod
     def from_mapping(cls, raw: dict[str, str]) -> "LabSettings":
-        exchange = raw.get("EXCHANGE", "binance").strip().lower()
+        exchange = raw.get("EXCHANGE", DEFAULT_EXCHANGE).strip().lower()
         if exchange not in ALLOWED_EXCHANGES:
             allowed = ", ".join(sorted(ALLOWED_EXCHANGES))
             raise ValueError(f"EXCHANGE must be one of: {allowed}.")

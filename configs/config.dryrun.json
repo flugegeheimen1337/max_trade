@@ -34,7 +34,7 @@
     "order_book_top": 1
   },
   "exchange": {
-    "name": "binance",
+    "name": "bybit",
     "api_key": "",
     "secret": "",
     "ccxt_config": {"enableRateLimit": true},

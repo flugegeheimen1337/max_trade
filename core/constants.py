@@ -10,7 +10,10 @@ FREQTRADE_RELEASE = "2026.10"
 STRATEGY_NAME = "BaselineTrendStrategy"
 INTERFACE_VERSION = 3
 
-ALLOWED_EXCHANGES = frozenset({"binance", "okx", "bybit"})
+DEFAULT_EXCHANGE = "bybit"
+FALLBACK_EXCHANGE = "okx"
+# Binance stays available as a public candle source. It is not the operating venue.
+ALLOWED_EXCHANGES = frozenset({DEFAULT_EXCHANGE, FALLBACK_EXCHANGE, "binance"})
 ALLOWED_PAIRS = ("BTC/USDT", "ETH/USDT")
 TIMEFRAMES = ("15m", "1h", "4h", "1d")
 TRADING_TIMEFRAME = "15m"

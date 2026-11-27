@@ -1,3 +1,5 @@
+exchange=bybit
+fallback_exchange=okx
 freqtrade_image=freqtradeorg/freqtrade:2026.10
 freqtrade_release=2026.10
 python=>=3.12

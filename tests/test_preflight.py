@@ -9,7 +9,7 @@ STRATEGY = (ROOT / "strategies" / "BaselineTrendStrategy.py").read_text(encoding
 
 def _settings(**overrides: str) -> LabSettings:
     raw = {
-        "EXCHANGE": "binance",
+        "EXCHANGE": "bybit",
         "API_USERNAME": "freqtrade",
         "API_PASSWORD": "local-password-local-password",
         "JWT_SECRET_KEY": "j" * 40,
@@ -28,8 +28,13 @@ def _config(**overrides: str) -> dict:
     return config
 
 
+def test_missing_exchange_defaults_to_bybit():
+    assert LabSettings.from_mapping({}).exchange == "bybit"
+
+
 def test_rendered_config_passes_trade_preflight():
     config = render_config(load_base_config(ROOT / "configs" / "config.dryrun.json"), _settings())
+    assert config["exchange"]["name"] == "bybit"
     assert evaluate(config, STRATEGY, "trade") == []
 
 

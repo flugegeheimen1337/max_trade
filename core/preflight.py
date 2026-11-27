@@ -65,7 +65,7 @@ def safety_problems(config: dict[str, Any], strategy_text: str) -> list[str]:
     else:
         name = str(exchange.get("name", "")).lower()
         if name not in ALLOWED_EXCHANGES:
-            problems.append("exchange must be binance, okx, or bybit.")
+            problems.append("exchange must be bybit, okx, or binance.")
         for field in SECRET_FIELDS:
             value = exchange.get(field)
             if value not in (None, ""):

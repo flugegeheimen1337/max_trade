@@ -5,7 +5,7 @@
 ## Stage 1
 
 - [x] Зафиксировать Freqtrade `2026.10` и структуру репозитория.
-- [x] Собрать spot dry-run конфиг на BTC/USDT и ETH/USDT, 15m, 1000 USDT.
+- [x] Собрать spot dry-run конфиг на BTC/USDT и ETH/USDT, 15m, 1000 USDT. Биржа по умолчанию Bybit, запасная OKX.
 - [x] Блокировать `dry_run=false`, фьючерсы, шорты, ключи биржи и API наружу.
 - [x] Добавить базовую стратегию `BaselineTrendStrategy` как пробу движка.
 - [x] Добавить оператор `labctl`: init, download, validate, backtest, verify, up, start, pause, stop, down.
