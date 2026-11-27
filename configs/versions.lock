@@ -1,0 +1,13 @@
+freqtrade_image=freqtradeorg/freqtrade:2026.10
+freqtrade_release=2026.10
+python=>=3.12
+ccxt=>=4.5.76
+strategy_interface=3
+fee_per_side=0.001
+wallet_usdt=1000
+stake_usdt=100
+pairs=BTC/USDT,ETH/USDT
+trading_timeframe=15m
+download_timeframes=15m,1h,4h,1d
+download_timerange=20200101-
+verify_timerange=20240101-20240301
