@@ -122,11 +122,48 @@ def strategy_problems(strategy_text: str) -> list[str]:
     return problems
 
 
+def futures_research_problems(config: dict[str, Any]) -> list[str]:
+    """Futures configs are allowed only for download-data and backtesting."""
+    problems: list[str] = []
+    if config.get("dry_run") is not True:
+        problems.append("dry_run must be true. Live trading is blocked in this build.")
+    if config.get("trading_mode") != "futures":
+        problems.append("futures research config must use trading_mode futures.")
+    if config.get("margin_mode") != "isolated":
+        problems.append("futures research must use isolated margin.")
+    leverage = config.get("lab_leverage", 1.0)
+    if not isinstance(leverage, (int, float)) or not 1.0 <= float(leverage) <= 10.0:
+        problems.append("lab_leverage must be between 1 and 10.")
+    if config.get("force_entry_enable") is True:
+        problems.append("force_entry_enable must stay false.")
+    api = config.get("api_server") or {}
+    if api.get("enabled") is True:
+        problems.append("futures research must not start the REST API.")
+    telegram = config.get("telegram") or {}
+    if telegram.get("enabled") is True or telegram.get("token") or telegram.get("chat_id"):
+        problems.append("telegram must stay disabled in this build.")
+    exchange = config.get("exchange")
+    if not isinstance(exchange, dict):
+        problems.append("exchange config is missing.")
+        return problems
+    if str(exchange.get("name", "")).lower() not in ALLOWED_EXCHANGES:
+        problems.append("exchange must be bybit, okx, or binance.")
+    for field in SECRET_FIELDS:
+        if exchange.get(field) not in (None, ""):
+            problems.append(f"exchange.{field} must be empty. Public data does not use keys.")
+    for pair in exchange.get("pair_whitelist") or ():
+        if not str(pair).endswith(":USDT"):
+            problems.append(f"{pair} is not a USDT-settled perpetual.")
+    return problems
+
+
 def load_config(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def evaluate(config: dict[str, Any], strategy_text: str, mode: str) -> list[str]:
+    if mode == "futures_research":
+        return futures_research_problems(config)
     problems = safety_problems(config, strategy_text)
     if mode == "trade":
         problems.extend(trade_problems(config))
@@ -137,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Block live-trading Freqtrade configs.")
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--strategy", required=True, type=Path)
-    parser.add_argument("--mode", choices=("safety", "trade"), default="safety")
+    parser.add_argument("--mode", choices=("safety", "trade", "futures_research"), default="safety")
     args = parser.parse_args(argv)
     problems = evaluate(load_config(args.config), args.strategy.read_text(encoding="utf-8"), args.mode)
     if problems:

@@ -16,6 +16,7 @@ services:
       - ./core:/lab/core:ro
       - ./market:/lab/market:ro
       - ./backtesting:/lab/backtesting:ro
+      - ./research:/lab/research:ro
       - ./scripts:/lab/scripts:ro
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"

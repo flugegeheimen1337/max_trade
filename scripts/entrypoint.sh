@@ -15,6 +15,17 @@ if [ "${1:-}" = "trade" ]; then
   MODE=trade
 fi
 
+if [ "${LAB_MODE:-}" = "futures_research" ]; then
+  case "${1:-}" in
+    download-data|backtesting|lookahead-analysis|recursive-analysis|list-data) ;;
+    *)
+      echo "lab: futures research allows data and backtest commands only, not '${1:-}'." >&2
+      exit 1
+      ;;
+  esac
+  MODE=futures_research
+fi
+
 mkdir -p \
   /freqtrade/user_data/logs \
   /freqtrade/user_data/data \
