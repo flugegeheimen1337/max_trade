@@ -157,7 +157,9 @@ def completed_runs() -> set[str]:
     done = set()
     for line in RESULTS_FILE.read_text(encoding="utf-8").splitlines():
         if line.strip():
-            done.add(json.loads(line)["run_id"])
+            record = json.loads(line)
+            if record.get("status") == "DONE":
+                done.add(record["run_id"])
     return done
 
 
@@ -215,7 +217,8 @@ def cmd_screen(strategies: list[str], timeframes: list[str], leverages: list[flo
     timerange = windows(research)[window]
     if window == "holdout":
         raise SystemExit("The holdout window is reserved for the final test.")
-    fee = research["fees"]["stress" if fee_label == "stress" else "taker"]
+    # "zero" is a diagnostic: it shows the gross edge before costs, never a tradable result.
+    fee = 0.0 if fee_label == "zero" else research["fees"][fee_label]
     done = completed_runs()
     jobs = []
     for strategy in strategies:
@@ -267,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
     screen.add_argument("--timeframes", nargs="+", default=["15m", "1h"])
     screen.add_argument("--leverages", nargs="+", type=float, default=[1.0])
     screen.add_argument("--window", choices=("development", "validation", "holdout"), default="development")
-    screen.add_argument("--fee", choices=("taker", "stress"), default="taker")
+    screen.add_argument("--fee", choices=("taker", "stress", "zero"), default="taker")
     screen.add_argument("--workers", type=int, default=4)
     args = parser.parse_args(argv)
     if args.command == "universe":

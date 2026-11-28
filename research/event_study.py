@@ -32,6 +32,7 @@ def patterns(df: pd.DataFrame) -> dict[str, tuple[pd.Series, int]]:
     rsi = 100 - 100 / (1 + gain / loss.replace(0, np.nan))
     inside = (df["high"] < df["high"].shift(1)) & (df["low"] > df["low"].shift(1))
     return {
+        "baseline_every_bar": (pd.Series(True, index=df.index), 1),
         "bull_engulfing": (
             (prev_body < 0) & (body > 0) & (df["close"] > df["open"].shift(1))
             & (df["open"] < df["close"].shift(1)), 1),
@@ -119,7 +120,20 @@ def main(argv: list[str] | None = None) -> int:
             })
     payload = {"window": f"{args.start}-{args.end}", "fee": args.fee, "pooled": pooled, "per_pair": records}
     args.out.write_text(json.dumps(payload, indent=1) + "\n", encoding="utf-8")
+    baseline = {
+        (r["timeframe"], r["horizon_bars"]): r["mean_gross"]
+        for r in pooled if r["pattern"] == "baseline_every_bar"
+    }
+    for row in pooled:
+        drift = baseline.get((row["timeframe"], row["horizon_bars"]), 0.0)
+        sign = 1 if row["direction"] == "long" else -1
+        row["excess_vs_drift"] = row["mean_gross"] - sign * drift
+    payload["pooled"] = pooled
+    args.out.write_text(json.dumps(payload, indent=1) + "\n", encoding="utf-8")
     best = sorted(pooled, key=lambda r: r["mean_net"], reverse=True)[:10]
+    for row in sorted(pooled, key=lambda r: r["excess_vs_drift"], reverse=True)[:10]:
+        print(f"excess {row['timeframe']:>4} {row['pattern']:<24} {row['direction']:<5} h={row['horizon_bars']:>2} "
+              f"n={row['events']:>6} excess={row['excess_vs_drift'] * 100:+.3f}% net={row['mean_net'] * 100:+.3f}%")
     for row in best:
         print(f"{row['timeframe']:>4} {row['pattern']:<24} {row['direction']:<5} h={row['horizon_bars']:>2} "
               f"n={row['events']:>6} net={row['mean_net'] * 100:+.3f}% hit={row['hit_rate']:.2f} "

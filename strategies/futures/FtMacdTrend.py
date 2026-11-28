@@ -6,7 +6,7 @@ continues. Exit on the opposite MACD cross.
 
 from pandas import DataFrame
 import talib.abstract as ta
-from freqtrade.strategy import qtpylib
+import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 from research.strategy_base import LabFuturesStrategy, mark_entry
 

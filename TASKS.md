@@ -1,6 +1,6 @@
 # Задачи
 
-Статусы относятся к этой среде сборки. Команды бэктеста на ПК здесь не запускались: в окружении нет Docker.
+Статусы stage 1 сверены с прогонами на ПК.
 
 ## Stage 1
 
@@ -12,12 +12,30 @@
 - [x] Проверять дырки, дубликаты и битые OHLC без заполнения пропусков.
 - [x] Сравнивать два архива бэктеста без полей времени запуска.
 - [x] Прогнать unit-тесты в среде сборки. `python3 -m pytest`: 15 passed, Python 3.12.3. Это проверки конфига, ряда и сравнения архивов, без рыночных данных.
-- [ ] Скачать реальные свечи. В среде сборки нет Docker, поэтому загрузка и бэктест здесь не выполнялись и пройденными не считаются. На ПК: `./scripts/lab.sh download`.
-- [ ] Выполнить первый бэктест и повторный прогон. Команда: `./scripts/lab.sh verify`. Пока записи `user_data/reproducibility.json` нет, этап не считается закрытым.
-- [ ] Запустить dry-run после совпавших прогонов: `./scripts/lab.sh up`, затем `./scripts/lab.sh start`.
+- [x] Скачать реальные свечи на ПК: `./scripts/lab.sh download`.
+- [x] Выполнить первый бэктест и повторный прогон: `./scripts/lab.sh verify` дал `matched: true`, 98 сделок.
+- [x] Запустить spot dry-run после совпавших прогонов: `./scripts/lab.sh up`, затем `./scripts/lab.sh start`.
+
+## Futures research, итерация 1
+
+Только бэктест, исторические данные и бумажные расчёты. Конфиги фьючерсов не проходят в режим торговли: entrypoint пускает их только в download-data и backtesting, preflight требует `dry_run=true` и isolated.
+
+- [x] Конфиг исследования `configs/futures_research.json` и база `configs/config.futures-research.json`.
+- [x] Проверить 30 кандидатов USDT-M на Bybit: `./scripts/futures.sh universe`.
+- [x] Первая волна из 14 ликвидных контрактов. Отбор по сегодняшней ликвидности, поэтому все результаты помечены LIMITED_VALIDATION.
+- [x] Свечи 15m, 1h, 4h, mark и funding с 2023-01-01: `./scripts/futures.sh download`.
+- [x] Часовой открытый интерес: `./scripts/futures.sh open-interest`.
+- [x] Шесть long/short стратегий в `strategies/futures`.
+- [x] Скрининг development-окна: `./scripts/futures.sh screen`.
+- [x] Событийное исследование паттернов: `./scripts/futures.sh events`.
+- [ ] Свечи 5m и скрининг 5m.
+- [ ] Свести OI и funding в признаки стратегий.
+- [ ] Бумажные портфели. Не начинать, пока ни один кандидат не прошёл validation.
+
+Не доступны в этой итерации (DATA_UNAVAILABLE): история стакана, история ликвидаций, long/short ratio за весь период.
 
 ## Stage 2 и дальше
 
-Не начато. Сюда входят пять отдельных стратегий, режим рынка, риск на сделку, walk-forward, out-of-sample, отчёты, PostgreSQL, FastAPI, Telegram и Grafana.
+Не начато, кроме futures research выше. Сюда входят пять отдельных стратегий, режим рынка, риск на сделку, walk-forward, out-of-sample, отчёты, PostgreSQL, FastAPI, Telegram и Grafana.
 
 Параметры stage 1 (ставка 100 USDT, стоп 8%, пороги EMA и ADX) — условия пробы движка. Под доходность они не подбирались.
