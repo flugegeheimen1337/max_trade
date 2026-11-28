@@ -34,7 +34,7 @@ def table(records: list[dict]) -> str:
         s = r["summary"]
         lines.append(
             f"| {r['strategy']} {r['timeframe']} x{r['leverage']:g} {r['fee_label']} | {s['trades']} "
-            f"| {pct(s['total_return'])} | {num(s['profit_factor'])} | {pct(s['max_drawdown_account'])} "
+            f"| {pct(s['total_return'])} | {num(s['profit_factor'])} | {num((s['max_drawdown_account'] or 0) * 100, 1)}% "
             f"| {num(s['fees_abs'], 0)} | {num(s['funding_abs'], 0)} | {s['liquidations']} "
             f"| {num(s['long']['profit_abs'], 0)} / {num(s['long']['profit_factor'])} "
             f"| {num(s['short']['profit_abs'], 0)} / {num(s['short']['profit_factor'])} |"

@@ -35,10 +35,10 @@ def patterns(df: pd.DataFrame) -> dict[str, tuple[pd.Series, int]]:
         "baseline_every_bar": (pd.Series(True, index=df.index), 1),
         "bull_engulfing": (
             (prev_body < 0) & (body > 0) & (df["close"] > df["open"].shift(1))
-            & (df["open"] < df["close"].shift(1)), 1),
+            & (df["open"] <= df["close"].shift(1)), 1),
         "bear_engulfing": (
             (prev_body > 0) & (body < 0) & (df["close"] < df["open"].shift(1))
-            & (df["open"] > df["close"].shift(1)), -1),
+            & (df["open"] >= df["close"].shift(1)), -1),
         "hammer": ((lower > 2 * body.abs()) & (upper < 0.25 * rng) & (df["close"] < ema200), 1),
         "shooting_star": ((upper > 2 * body.abs()) & (lower < 0.25 * rng) & (df["close"] > ema200), -1),
         "inside_break_up": (inside.shift(1, fill_value=False) & (df["close"] > df["high"].shift(1)), 1),

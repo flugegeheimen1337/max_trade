@@ -104,6 +104,20 @@ def test_split_windows_are_contiguous_and_ordered():
     assert dev[1] == val[0] and val[1] == hold[0]
 
 
+def test_engulfing_counts_an_open_equal_to_the_previous_close():
+    import pandas as pd
+
+    from research.event_study import patterns
+
+    df = pd.DataFrame({
+        "open": [10.0, 10.0, 9.0], "close": [10.0, 9.0, 10.5],
+        "high": [10.2, 10.1, 10.6], "low": [9.8, 8.9, 8.9], "volume": [1.0, 1.0, 1.0],
+    })
+    mask, direction = patterns(df)["bull_engulfing"]
+    assert direction == 1
+    assert mask.tolist() == [False, False, True]
+
+
 def test_summarise_splits_long_short_and_counts_costs(tmp_path):
     trades = [
         {"pair": "BTC/USDT:USDT", "is_short": False, "profit_abs": 10.0, "amount": 1.0,
