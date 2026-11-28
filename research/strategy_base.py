@@ -61,6 +61,35 @@ class LabFuturesStrategy(IStrategy):
     ) -> float:
         return min(float(self.config.get("lab_leverage", 1.0)), max_leverage)
 
+    def _universe(self) -> dict[str, set[str]] | None:
+        path = self.config.get("lab_universe_file")
+        if not path:
+            return None
+        if not hasattr(self, "_universe_cache"):
+            import json
+            from pathlib import Path
+
+            months = json.loads(Path(path).read_text(encoding="utf-8"))["months"]
+            self._universe_cache = {month: set(pairs) for month, pairs in months.items()}
+        return self._universe_cache
+
+    def confirm_trade_entry(
+        self,
+        pair: str,
+        order_type: str,
+        amount: float,
+        rate: float,
+        time_in_force: str,
+        current_time: datetime,
+        entry_tag: str | None,
+        side: str,
+        **kwargs,
+    ) -> bool:
+        universe = self._universe()
+        if universe is None:
+            return True
+        return pair in universe.get(current_time.strftime("%Y-%m"), set())
+
     def custom_exit(
         self,
         pair: str,

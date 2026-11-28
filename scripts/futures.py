@@ -26,6 +26,7 @@ BASE_CONFIG = ROOT / "configs" / "config.futures-research.json"
 RESEARCH_DIR = ROOT / "user_data" / "research"
 UNIVERSE_FILE = RESEARCH_DIR / "universe" / "latest.json"
 RESULTS_FILE = RESEARCH_DIR / "results.jsonl"
+PIT_FILE = RESEARCH_DIR / "universe" / "pit.json"
 CONTAINER_ROOT = "/freqtrade/user_data"
 STRATEGIES = (
     "FtEmaTrend",
@@ -34,6 +35,9 @@ STRATEGIES = (
     "FtSqueezeBreakout",
     "FtMacdTrend",
     "FtMtfMomentum",
+    "FtFundingFade",
+    "FtOiBreakout",
+    "FtCrossMomentum",
 )
 
 
@@ -45,6 +49,17 @@ def first_wave() -> list[str]:
     if not UNIVERSE_FILE.exists():
         raise SystemExit("Run ./scripts/futures.sh universe first.")
     return json.loads(UNIVERSE_FILE.read_text(encoding="utf-8"))["first_wave"]
+
+
+def listed_candidates() -> list[str]:
+    if not UNIVERSE_FILE.exists():
+        raise SystemExit("Run ./scripts/futures.sh universe first.")
+    payload = json.loads(UNIVERSE_FILE.read_text(encoding="utf-8"))
+    return [item["symbol"] for item in payload["instruments"] if item["listed"]]
+
+
+def pair_set(name: str) -> list[str]:
+    return first_wave() if name == "first_wave" else listed_candidates()
 
 
 def container_path(path: Path) -> str:
@@ -94,9 +109,8 @@ def cmd_universe() -> int:
     )
 
 
-def cmd_download(timeframes: list[str], timerange: str | None) -> int:
+def cmd_download(timeframes: list[str], timerange: str | None, pairs: list[str]) -> int:
     research = load_research()
-    pairs = first_wave()
     path = RESEARCH_DIR / "configs" / "download.json"
     write_json(path, render(research, pairs, "15m", 1.0, research["fees"]["taker"]))
     return compose_run(
@@ -115,14 +129,30 @@ def cmd_download(timeframes: list[str], timerange: str | None) -> int:
     )
 
 
-def cmd_open_interest() -> int:
+def cmd_open_interest(pairs: list[str]) -> int:
     research = load_research()
     path = RESEARCH_DIR / "configs" / "open_interest.json"
     write_json(path, render(research, ["BTC/USDT:USDT"], "1h", 1.0, research["fees"]["taker"]))
     return compose_run(
-        ["-m", "research.open_interest", "--pairs", *first_wave(),
+        ["-m", "research.open_interest", "--pairs", *pairs,
          "--start", research["history_start"],
          "--out", container_path(RESEARCH_DIR / "market" / "open_interest")],
+        path,
+        entrypoint="python3",
+    )
+
+
+def cmd_pit_universe(top: int) -> int:
+    research = load_research()
+    path = RESEARCH_DIR / "configs" / "pit_universe.json"
+    write_json(path, render(research, ["BTC/USDT:USDT"], "1h", 1.0, research["fees"]["taker"]))
+    filters = research["filters"]
+    return compose_run(
+        ["-m", "research.pit_universe", "--datadir", f"{CONTAINER_ROOT}/data/{research['exchange']}",
+         "--scan", container_path(UNIVERSE_FILE), "--start", research["history_start"],
+         "--top", str(top), "--min-age-days", str(int(filters["min_listing_age_days"])),
+         "--min-turnover", str(filters["min_avg_daily_turnover_usdt"]),
+         "--out", container_path(PIT_FILE)],
         path,
         entrypoint="python3",
     )
@@ -170,7 +200,11 @@ def run_backtest(job: dict, research: dict) -> dict:
     log_dir = RESEARCH_DIR / "logs"
     out_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
-    write_json(config_path, render(research, job["pairs"], job["timeframe"], job["leverage"], job["fee"]))
+    config = render(research, job["pairs"], job["timeframe"], job["leverage"], job["fee"])
+    config["lab_oi_dir"] = container_path(RESEARCH_DIR / "market" / "open_interest")
+    if job.get("universe_file"):
+        config["lab_universe_file"] = job["universe_file"]
+    write_json(config_path, config)
     started = time.time()
     with (log_dir / f"{run_id}.stdout.log").open("w", encoding="utf-8") as handle:
         command = [
@@ -202,7 +236,8 @@ def run_backtest(job: dict, research: dict) -> dict:
     record["status"] = "DONE"
     record["validation_label"] = "LIMITED_VALIDATION"
     record["limitations"] = [
-        "universe picked by today's liquidity (survivorship bias)",
+        "candidate list is today's (delisted coins are missing)" if job.get("universe_file")
+        else "universe picked by today's liquidity (survivorship bias)",
         "no spread, slippage, latency or partial fills; stress fee stands in for them",
         "no intrabar detail: stops fill at the stop price",
     ]
@@ -211,9 +246,12 @@ def run_backtest(job: dict, research: dict) -> dict:
 
 
 def cmd_screen(strategies: list[str], timeframes: list[str], leverages: list[float],
-               window: str, fee_label: str, workers: int) -> int:
+               window: str, fee_label: str, workers: int, universe: str) -> int:
     research = load_research()
-    pairs = first_wave()
+    pairs = pair_set("listed" if universe == "pit" else "first_wave")
+    universe_file = container_path(PIT_FILE) if universe == "pit" else None
+    if universe == "pit" and not PIT_FILE.exists():
+        raise SystemExit("Run ./scripts/futures.sh pit-universe first.")
     timerange = windows(research)[window]
     if window == "holdout":
         raise SystemExit("The holdout window is reserved for the final test.")
@@ -225,12 +263,15 @@ def cmd_screen(strategies: list[str], timeframes: list[str], leverages: list[flo
         for timeframe in timeframes:
             for leverage in leverages:
                 run_id = f"{window}-{strategy}-{timeframe}-x{leverage:g}-{fee_label}"
+                if universe == "pit":
+                    run_id = f"pit-{run_id}"
                 if run_id in done:
                     continue
                 jobs.append({
                     "run_id": run_id, "window": window, "timerange": timerange,
                     "strategy": strategy, "timeframe": timeframe, "leverage": leverage,
                     "fee_label": fee_label, "fee": fee, "pairs": pairs,
+                    "universe": universe, "universe_file": universe_file,
                 })
     print(f"{len(jobs)} runs queued, {workers} workers, window {window} {timerange}")
     RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -261,7 +302,11 @@ def main(argv: list[str] | None = None) -> int:
     download = sub.add_parser("download")
     download.add_argument("--timeframes", nargs="+", default=["5m", "15m", "1h", "4h"])
     download.add_argument("--timerange")
-    sub.add_parser("open-interest")
+    download.add_argument("--set", choices=("first_wave", "listed"), default="first_wave")
+    oi = sub.add_parser("open-interest")
+    oi.add_argument("--set", choices=("first_wave", "listed"), default="first_wave")
+    pit = sub.add_parser("pit-universe")
+    pit.add_argument("--top", type=int, default=12)
     events = sub.add_parser("events")
     events.add_argument("--timeframes", nargs="+", default=["15m", "1h"])
     events.add_argument("--window", choices=("development", "validation", "holdout"), default="development")
@@ -272,6 +317,7 @@ def main(argv: list[str] | None = None) -> int:
     screen.add_argument("--window", choices=("development", "validation", "holdout"), default="development")
     screen.add_argument("--fee", choices=("taker", "stress", "zero"), default="taker")
     screen.add_argument("--workers", type=int, default=4)
+    screen.add_argument("--universe", choices=("first_wave", "pit"), default="first_wave")
     args = parser.parse_args(argv)
     if args.command == "universe":
         return cmd_universe()
@@ -279,14 +325,16 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(windows(load_research()), indent=2))
         return 0
     if args.command == "download":
-        return cmd_download(args.timeframes, args.timerange)
+        return cmd_download(args.timeframes, args.timerange, pair_set(args.set))
     if args.command == "open-interest":
-        return cmd_open_interest()
+        return cmd_open_interest(pair_set(args.set))
+    if args.command == "pit-universe":
+        return cmd_pit_universe(args.top)
     if args.command == "events":
         return cmd_events(args.timeframes, args.window)
     if args.command == "screen":
         return cmd_screen(args.strategies, args.timeframes, args.leverages,
-                          args.window, args.fee, args.workers)
+                          args.window, args.fee, args.workers, args.universe)
     return 2
 
 
