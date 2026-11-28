@@ -28,9 +28,17 @@
 - [x] Шесть long/short стратегий в `strategies/futures`.
 - [x] Скрининг development-окна: `./scripts/futures.sh screen`.
 - [x] Событийное исследование паттернов: `./scripts/futures.sh events`.
-- [ ] Свечи 5m и скрининг 5m.
-- [ ] Свести OI и funding в признаки стратегий.
-- [ ] Бумажные портфели. Не начинать, пока ни один кандидат не прошёл validation.
+- [x] Свечи 5m и скрининг 5m.
+
+## Futures research, итерация 2
+
+- [x] Протокол отбора до прогонов: `docs/futures-iteration-2-protocol.md`.
+- [x] Данные по 28 листингованным кандидатам: `./scripts/futures.sh download --set listed --timeframes 1h 4h`, `./scripts/futures.sh open-interest --set listed`.
+- [x] Набор монет по датам: `./scripts/futures.sh pit-universe`, прогоны `screen --universe pit`.
+- [x] Стратегии на funding, OI и кросс-секционном моментуме.
+- [x] Отчёт: `docs/futures-iteration-2.md`. Кандидатов в validation по протоколу нет.
+- [ ] Итерация 3: протокол для FtOiBreakout 4h.
+- [ ] Бумажные портфели. Не начинать, пока кандидат не прошёл validation.
 
 Не доступны в этой итерации (DATA_UNAVAILABLE): история стакана, история ликвидаций, long/short ratio за весь период.
 

@@ -118,6 +118,51 @@ def test_engulfing_counts_an_open_equal_to_the_previous_close():
     assert mask.tolist() == [False, False, True]
 
 
+def test_pit_universe_uses_only_turnover_before_the_month():
+    import pandas as pd
+
+    from research.pit_universe import build
+
+    days = pd.date_range("2024-01-01", "2024-02-29", freq="D", tz="UTC")
+    early = pd.Series(100.0, index=days)
+    late = pd.Series([1.0 if day < pd.Timestamp("2024-02-01", tz="UTC") else 1000.0 for day in days],
+                     index=days)
+    old = pd.Timestamp("2020-01-01", tz="UTC")
+    months = [pd.Timestamp("2024-02-01", tz="UTC"), pd.Timestamp("2024-03-01", tz="UTC")]
+    result = build({"A": early, "B": late}, {"A": old, "B": old}, months,
+                   top=1, min_age_days=180, min_turnover=0.0)
+    assert result == {"2024-02": ["A"], "2024-03": ["B"]}
+
+
+def test_pit_universe_skips_young_contracts():
+    import pandas as pd
+
+    from research.pit_universe import build
+
+    days = pd.date_range("2024-01-01", "2024-01-31", freq="D", tz="UTC")
+    young = pd.Timestamp("2023-12-01", tz="UTC")
+    result = build({"A": pd.Series(1e9, index=days)}, {"A": young},
+                   [pd.Timestamp("2024-02-01", tz="UTC")], top=5, min_age_days=180, min_turnover=0.0)
+    assert result == {"2024-02": []}
+
+
+def test_open_interest_is_used_one_hour_after_its_timestamp(tmp_path):
+    import pandas as pd
+
+    from research.market_data import open_interest
+
+    start = pd.Timestamp("2024-01-01", tz="UTC")
+    (tmp_path / "BTC-1h.csv").write_text(
+        "timestamp,open_interest_contracts\n"
+        f"{int(start.timestamp() * 1000)},10\n"
+        f"{int((start + pd.Timedelta(hours=1)).timestamp() * 1000)},20\n"
+    )
+    candles = pd.DataFrame({"date": pd.date_range(start, periods=3, freq="h", tz="UTC")})
+    values = open_interest(candles, tmp_path, "BTC/USDT:USDT").tolist()
+    assert pd.isna(values[0])
+    assert values[1:] == [10, 20]
+
+
 def test_summarise_splits_long_short_and_counts_costs(tmp_path):
     trades = [
         {"pair": "BTC/USDT:USDT", "is_short": False, "profit_abs": 10.0, "amount": 1.0,
