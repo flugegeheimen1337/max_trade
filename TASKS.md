@@ -37,7 +37,10 @@
 - [x] Набор монет по датам: `./scripts/futures.sh pit-universe`, прогоны `screen --universe pit`.
 - [x] Стратегии на funding, OI и кросс-секционном моментуме.
 - [x] Отчёт: `docs/futures-iteration-2.md`. Кандидатов в validation по протоколу нет.
-- [ ] Итерация 3: протокол для FtOiBreakout 4h.
+- [x] Итерация 3: протокол и сетка FtOiBreakout 4h. Гипотеза закрыта, отчёт `docs/futures-iteration-3-4.md`.
+- [x] Итерация 4: фильтр режима BTC. Гипотеза закрыта.
+- [ ] Новые данные: стакан, ликвидации, basis spot-perp.
+- [ ] Протокол для funding-спреда spot против perp.
 - [ ] Бумажные портфели. Не начинать, пока кандидат не прошёл validation.
 
 Не доступны в этой итерации (DATA_UNAVAILABLE): история стакана, история ликвидаций, long/short ratio за весь период.

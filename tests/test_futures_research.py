@@ -163,6 +163,16 @@ def test_open_interest_is_used_one_hour_after_its_timestamp(tmp_path):
     assert values[1:] == [10, 20]
 
 
+def test_parameter_grid_is_a_full_product_with_stable_labels():
+    from scripts.futures import params_label, parse_grid
+
+    grid = parse_grid(["channel=24,48", "oi_threshold=0,0.03"])
+    assert len(grid) == 4
+    assert {"channel": 48.0, "oi_threshold": 0.03} in grid
+    assert params_label({"oi_threshold": 0.03, "channel": 48.0}) == "-channel48-oi_threshold0.03"
+    assert parse_grid([]) == [{}]
+
+
 def test_summarise_splits_long_short_and_counts_costs(tmp_path):
     trades = [
         {"pair": "BTC/USDT:USDT", "is_short": False, "profit_abs": 10.0, "amount": 1.0,
