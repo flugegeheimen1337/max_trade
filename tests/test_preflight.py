@@ -57,13 +57,13 @@ def test_safety_blocks_a_hand_edited_live_config():
     config["margin_mode"] = "isolated"
     config["exchange"]["api_key"] = "abc"
     config["exchange"]["pair_whitelist"] = ["DOGE/USDT"]
-    config["api_server"]["listen_ip_address"] = "0.0.0.0"
+    config["api_server"]["listen_ip_address"] = "10.1.2.3"
     problems = evaluate(config, STRATEGY, "safety")
     assert any("dry_run" in problem for problem in problems)
     assert any("spot" in problem for problem in problems)
     assert any("api_key" in problem for problem in problems)
     assert any("whitelist" in problem for problem in problems)
-    assert any("127.0.0.1" in problem for problem in problems)
+    assert any("0.0.0.0" in problem for problem in problems)
 
 
 def test_placeholder_secrets_block_trade_mode_only():

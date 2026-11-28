@@ -27,7 +27,10 @@ FEE = 0.001
 DOWNLOAD_TIMERANGE = "20200101-"
 VERIFY_TIMERANGE = "20240101-20240301"
 
-API_LISTEN = "127.0.0.1"
+# The process binds every container interface. docker-compose publishes that
+# port only on the host loopback, so the API is not reachable from the LAN.
+# Binding 127.0.0.1 inside the container hides the port from the published mapping.
+API_LISTEN = "0.0.0.0"
 API_CONTAINER_PORT = 8080
 
 PLACEHOLDER_SECRETS = frozenset(

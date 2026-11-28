@@ -84,7 +84,10 @@ def safety_problems(config: dict[str, Any], strategy_text: str) -> list[str]:
 
     api = config.get("api_server") or {}
     if api.get("listen_ip_address") != API_LISTEN:
-        problems.append("api_server.listen_ip_address must be 127.0.0.1.")
+        problems.append(
+            "api_server.listen_ip_address must be 0.0.0.0. "
+            "The compose file publishes it only on 127.0.0.1."
+        )
     origins = api.get("CORS_origins")
     if origins not in ([], None):
         problems.append("api_server.CORS_origins must be empty.")

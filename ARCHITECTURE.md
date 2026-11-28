@@ -19,7 +19,7 @@ Freqtrade 2026.10 в образе `freqtradeorg/freqtrade:2026.10` исполн�
 
 `labctl` читает `.env`, записывает `user_data/config.active.json` и вызывает `docker compose`. Контейнер монтирует `strategies/` в каталог стратегий Freqtrade. Точка входа `scripts/entrypoint.sh` ещё раз запускает preflight и только потом `exec freqtrade`.
 
-Для команды `trade` preflight требует локальные пароль API, JWT и WebSocket-токен. Для `download-data` и `backtesting` достаточно безопасного режима: `dry_run=true`, `trading_mode=spot`, пустые ключи, whitelist из BTC/USDT и ETH/USDT, API на `127.0.0.1`.
+Для команды `trade` preflight требует локальные пароль API, JWT и WebSocket-токен. Для `download-data` и `backtesting` достаточно безопасного режима: `dry_run=true`, `trading_mode=spot`, пустые ключи, whitelist из BTC/USDT и ETH/USDT. Процесс в контейнере слушает `0.0.0.0`, а compose публикует порт только на `127.0.0.1` хоста: loopback контейнера Docker наружу не пробрасывает.
 
 Ключи биржи вырезаются при каждой сборке конфига. Публичные свечи и dry-run в них не нуждаются.
 

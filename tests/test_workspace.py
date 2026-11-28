@@ -23,3 +23,4 @@ def test_compose_and_lock_pin_the_same_image():
     assert FREQTRADE_IMAGE in compose
     assert FREQTRADE_IMAGE in lock
     assert '127.0.0.1:${API_PORT:-8080}:8080' in compose
+    assert "0.0.0.0:" not in compose
