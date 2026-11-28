@@ -32,6 +32,20 @@ class DataQualityReport:
         return not self.errors
 
 
+def epoch_millis(raw_timestamp: int) -> int:
+    """Convert a Unix timestamp stored in seconds, ms, us, or ns to milliseconds."""
+    magnitude = abs(raw_timestamp)
+    if magnitude >= 10**17:
+        return raw_timestamp // 1_000_000
+    if magnitude >= 10**14:
+        return raw_timestamp // 1_000
+    if magnitude >= 10**11:
+        return raw_timestamp
+    if magnitude >= 10**8:
+        return raw_timestamp * 1_000
+    raise ValueError(f"unrecognized timestamp {raw_timestamp}")
+
+
 def validate_candles(candles: list[Candle], timeframe: str, source: str) -> DataQualityReport:
     report = DataQualityReport(rows=len(candles))
     step = TIMEFRAME_MS.get(timeframe)

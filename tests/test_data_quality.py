@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from market.data_quality import validate_candles
+from market.data_quality import epoch_millis, validate_candles
 from market.validate_data import candles_from_json, parse_candle_filename
 
 STEP = 15 * 60 * 1000
@@ -10,6 +10,22 @@ START = STEP * 2_000_000
 
 def _candle(timestamp: int, price: float = 100.0) -> tuple[int, float, float, float, float, float]:
     return (timestamp, price, price + 1, price - 1, price, 10.0)
+
+
+def test_epoch_millis_accepts_freqtrade_clock_units():
+    # 2021-07-05 00:00:00 UTC, a 4h boundary. Feather files may store any of these units.
+    milliseconds = 1_625_443_200_000
+    assert epoch_millis(milliseconds) == milliseconds
+    assert epoch_millis(milliseconds * 1_000) == milliseconds
+    assert epoch_millis(milliseconds * 1_000_000) == milliseconds
+    assert epoch_millis(milliseconds // 1_000) == milliseconds
+    report = validate_candles(
+        [_candle(milliseconds), _candle(milliseconds + 4 * 60 * 60 * 1000)],
+        "4h",
+        "ETH/USDT",
+    )
+    assert report.ok
+    assert report.errors == []
 
 
 def test_aligned_series_has_no_findings():

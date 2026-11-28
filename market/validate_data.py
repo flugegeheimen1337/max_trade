@@ -7,7 +7,13 @@ import json
 import sys
 from pathlib import Path
 
-from market.data_quality import TIMEFRAME_MS, Candle, DataQualityReport, validate_candles
+from market.data_quality import (
+    TIMEFRAME_MS,
+    Candle,
+    DataQualityReport,
+    epoch_millis,
+    validate_candles,
+)
 
 FILENAME = {
     "BTC/USDT": "BTC_USDT",
@@ -51,7 +57,7 @@ def candles_from_feather(path: Path) -> list[Candle]:
         raise ValueError(f"{path} date column has no timezone. Expected UTC.")
     if str(dates.dt.tz) != "UTC":
         raise ValueError(f"{path} date timezone is {dates.dt.tz}, expected UTC.")
-    timestamps = (dates.astype("int64") // 1_000_000).astype("int64")
+    timestamps = [epoch_millis(int(value)) for value in dates.astype("int64")]
     candles: list[Candle] = []
     for timestamp, opened, high, low, closed, volume in zip(
         timestamps,
