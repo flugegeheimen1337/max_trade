@@ -52,6 +52,22 @@ Freqtrade пишет zip. Внутри отчёта поля `run_id`, `backtest
 
 Облачный агент этот ПК не видит. Чтобы управлять лабораторией с компьютера, репозиторий открывается в Cursor уже там, и локальный агент вызывает `./scripts/lab.sh`.
 
+## Futures research
+
+Отдельный контур рядом со spot dry-run, без общего состояния. Оператор `scripts/futures.sh` (`scripts/futures.py`) запускает одноразовые контейнеры с `LAB_MODE=futures_research`. В этом режиме entrypoint пускает только download-data, backtesting, lookahead-analysis, recursive-analysis и list-data, а preflight проверяет: `dry_run=true`, `trading_mode=futures`, `margin_mode=isolated`, плечо 1–10, пустые ключи, выключенные API и Telegram. Запустить торговлю этим конфигом нельзя.
+
+- `research/universe.py` — проверка кандидатов на бирже: листинг, возраст, оборот за 30 дней, OI, спред, волатильность. Категории BLOCKED, RESEARCH_ONLY, CORE, LIQUID, HIGH_VOLATILITY.
+- `research/futures_config.py` — конфиг прогона. Номинал сделки одинаков при любом плече: маржа равна номиналу, делённому на плечо. Стоп задаётся расстоянием по цене и пересчитывается на маржу, как его считает Freqtrade, и обязан стоять ближе цены ликвидации.
+- `research/strategy_base.py` и `strategies/futures/` — стратегии long/short с тегами гипотез.
+- `research/windows.py` — окна 60/20/20: development, validation, holdout. Оператор отказывается гонять holdout.
+- `research/results.py`, `research/report.py` — сводка zip-архивов в `user_data/research/results.jsonl` и таблицы.
+- `research/event_study.py` — доходности после паттернов на следующем открытии, с базовой линией «каждый бар».
+- `research/open_interest.py` — часовой OI с публичного API Bybit.
+- `research/market_data.py` — funding и OI на свечах без заглядывания вперёд.
+- `research/pit_universe.py` — набор монет на каждый месяц по обороту до его начала. Стратегия отклоняет вход вне набора в `confirm_trade_entry`.
+
+Ликвидации считает Freqtrade по ступеням маржи Bybit из `leverage_tiers_USDT.json`. Спред, проскальзывание и частичные исполнения не моделируются, вместо них есть прогон со стрессовой комиссией 0,1%. Набор первой волны выбран по сегодняшней ликвидности, это ошибка выжившего. Прогоны `--universe pit` её уменьшают, но кандидаты — сегодняшние листинги, поэтому результаты остаются LIMITED_VALIDATION.
+
 ## Что сознательно не входит в stage 1
 
 Пять боевых стратегий, детектор режима, отдельный риск-модуль, walk-forward, PostgreSQL, FastAPI, Telegram, Prometheus и Grafana. Их рано добавлять, пока на ПК нет двух совпавших бэктестов по реальным свечам.

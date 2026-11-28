@@ -18,3 +18,4 @@ user_data/*.sqlite-shm
 user_data/*.sqlite-wal
 user_data/config.active.json
 user_data/reproducibility.json
+user_data/research/**

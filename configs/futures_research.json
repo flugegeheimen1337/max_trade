@@ -1,0 +1,31 @@
+{
+  "exchange": "bybit",
+  "quote": "USDT",
+  "settle": "USDT",
+  "candidates": {
+    "CORE": ["BTC", "ETH", "SOL", "BNB", "XRP"],
+    "LIQUID": ["ADA", "AVAX", "SUI", "APT", "NEAR", "TON", "TRX", "LINK", "DOGE", "LTC"],
+    "SECTOR": [
+      "ARB", "OP", "STRK", "UNI", "AAVE", "CRV", "INJ", "DOT", "ATOM", "FIL",
+      "RENDER", "TIA", "FET", "TAO", "BCH"
+    ]
+  },
+  "filters": {
+    "min_avg_daily_turnover_usdt": 20000000,
+    "min_listing_age_days": 180,
+    "min_open_interest_usdt": 20000000,
+    "max_spread_bps": 5.0,
+    "high_volatility_annualized": 1.0
+  },
+  "first_wave_size": 15,
+  "timeframes": ["5m", "15m", "1h"],
+  "regime_timeframe": "4h",
+  "history_start": "20230101",
+  "split": {"development": 0.6, "validation": 0.2, "holdout": 0.2},
+  "fees": {"taker": 0.00055, "maker": 0.0002, "stress": 0.001},
+  "leverages": [1, 2, 3, 5, 7, 10],
+  "notional_per_trade_usdt": 100,
+  "max_open_trades": 5,
+  "wallet_usdt": 1000,
+  "price_stop": 0.04
+}
