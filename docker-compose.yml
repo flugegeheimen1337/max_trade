@@ -1,0 +1,31 @@
+name: crypto-trading-lab
+
+services:
+  freqtrade:
+    image: freqtradeorg/freqtrade:2026.10
+    restart: "no"
+    entrypoint: ["/bin/sh", "/lab/scripts/entrypoint.sh"]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: /lab
+      LAB_CONFIG: /freqtrade/user_data/config.active.json
+    volumes:
+      - ./user_data:/freqtrade/user_data
+      - ./strategies:/freqtrade/user_data/strategies:ro
+      - ./configs:/lab/configs:ro
+      - ./core:/lab/core:ro
+      - ./market:/lab/market:ro
+      - ./backtesting:/lab/backtesting:ro
+      - ./scripts:/lab/scripts:ro
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    command:
+      - trade
+      - --logfile
+      - /freqtrade/user_data/logs/freqtrade.log
+      - --db-url
+      - sqlite:////freqtrade/user_data/tradesv3.dryrun.sqlite
+      - --config
+      - /freqtrade/user_data/config.active.json
+      - --strategy
+      - BaselineTrendStrategy
