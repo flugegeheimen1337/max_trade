@@ -202,6 +202,8 @@ def run_backtest(job: dict, research: dict) -> dict:
     log_dir.mkdir(parents=True, exist_ok=True)
     config = render(research, job["pairs"], job["timeframe"], job["leverage"], job["fee"])
     config["lab_oi_dir"] = container_path(RESEARCH_DIR / "market" / "open_interest")
+    if job.get("params"):
+        config["lab_params"] = job["params"]
     if job.get("universe_file"):
         config["lab_universe_file"] = job["universe_file"]
     write_json(config_path, config)
@@ -245,8 +247,21 @@ def run_backtest(job: dict, research: dict) -> dict:
     return record
 
 
+def parse_grid(items: list[str]) -> list[dict[str, float]]:
+    grid: list[dict[str, float]] = [{}]
+    for item in items:
+        name, values = item.split("=", 1)
+        grid = [dict(base, **{name: float(v)}) for base in grid for v in values.split(",")]
+    return grid
+
+
+def params_label(params: dict[str, float]) -> str:
+    return "".join(f"-{key}{value:g}" for key, value in sorted(params.items()))
+
+
 def cmd_screen(strategies: list[str], timeframes: list[str], leverages: list[float],
-               window: str, fee_label: str, workers: int, universe: str) -> int:
+               window: str, fee_label: str, workers: int, universe: str,
+               grid: list[dict[str, float]] | None = None) -> int:
     research = load_research()
     pairs = pair_set("listed" if universe == "pit" else "first_wave")
     universe_file = container_path(PIT_FILE) if universe == "pit" else None
@@ -262,17 +277,18 @@ def cmd_screen(strategies: list[str], timeframes: list[str], leverages: list[flo
     for strategy in strategies:
         for timeframe in timeframes:
             for leverage in leverages:
-                run_id = f"{window}-{strategy}-{timeframe}-x{leverage:g}-{fee_label}"
-                if universe == "pit":
-                    run_id = f"pit-{run_id}"
-                if run_id in done:
-                    continue
-                jobs.append({
-                    "run_id": run_id, "window": window, "timerange": timerange,
-                    "strategy": strategy, "timeframe": timeframe, "leverage": leverage,
-                    "fee_label": fee_label, "fee": fee, "pairs": pairs,
-                    "universe": universe, "universe_file": universe_file,
-                })
+                for params in grid or [{}]:
+                    run_id = f"{window}-{strategy}-{timeframe}-x{leverage:g}-{fee_label}{params_label(params)}"
+                    if universe == "pit":
+                        run_id = f"pit-{run_id}"
+                    if run_id in done:
+                        continue
+                    jobs.append({
+                        "run_id": run_id, "window": window, "timerange": timerange,
+                        "strategy": strategy, "timeframe": timeframe, "leverage": leverage,
+                        "fee_label": fee_label, "fee": fee, "pairs": pairs,
+                        "universe": universe, "universe_file": universe_file, "params": params,
+                    })
     print(f"{len(jobs)} runs queued, {workers} workers, window {window} {timerange}")
     RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     failures = 0
@@ -318,6 +334,7 @@ def main(argv: list[str] | None = None) -> int:
     screen.add_argument("--fee", choices=("taker", "stress", "zero"), default="taker")
     screen.add_argument("--workers", type=int, default=4)
     screen.add_argument("--universe", choices=("first_wave", "pit"), default="first_wave")
+    screen.add_argument("--grid", nargs="*", default=[], help="name=v1,v2 strategy parameters")
     args = parser.parse_args(argv)
     if args.command == "universe":
         return cmd_universe()
@@ -334,7 +351,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_events(args.timeframes, args.window)
     if args.command == "screen":
         return cmd_screen(args.strategies, args.timeframes, args.leverages,
-                          args.window, args.fee, args.workers, args.universe)
+                          args.window, args.fee, args.workers, args.universe,
+                          parse_grid(args.grid))
     return 2
 
 
