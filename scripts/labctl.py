@@ -39,6 +39,18 @@ RESULT_DIR = ROOT / "user_data" / "backtest_results"
 SIDECAR = ROOT / "user_data" / "reproducibility.json"
 
 
+def candle_datadir(exchange: str) -> str:
+    """Spot candles live in data/<exchange>/.
+
+    Freqtrade appends the exchange only when --datadir is omitted. Passing the
+    parent data directory makes the backtest look beside the files download wrote.
+    """
+    name = exchange.strip().lower()
+    if not name or any(char in name for char in "/\\."):
+        raise ValueError(f"Unexpected exchange name: {exchange}")
+    return f"/freqtrade/user_data/data/{name}"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="labctl")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -177,7 +189,7 @@ def cmd_backtest() -> int:
     if not _tool_ok("docker"):
         print("Docker is required to run the backtest.", file=sys.stderr)
         return 2
-    return _backtest(settings.verify_timerange, "backtest.log")
+    return _backtest(settings.verify_timerange, "backtest.log", settings.exchange)
 
 
 def cmd_verify() -> int:
@@ -189,12 +201,12 @@ def cmd_verify() -> int:
         print("Docker is required to verify the backtest.", file=sys.stderr)
         return 2
     before = _zip_set()
-    first = _backtest(settings.verify_timerange, "backtest-1.log")
+    first = _backtest(settings.verify_timerange, "backtest-1.log", settings.exchange)
     if first != 0:
         return first
     first_zip = _newest(_zip_set() - before)
     before = _zip_set()
-    second = _backtest(settings.verify_timerange, "backtest-2.log")
+    second = _backtest(settings.verify_timerange, "backtest-2.log", settings.exchange)
     if second != 0:
         return second
     second_zip = _newest(_zip_set() - before)
@@ -281,7 +293,7 @@ def _require_trade(config_path: Path) -> int:
     return 1
 
 
-def _backtest(timerange: str, logfile: str) -> int:
+def _backtest(timerange: str, logfile: str, exchange: str) -> int:
     return _compose(
         [
             "backtesting",
@@ -292,7 +304,7 @@ def _backtest(timerange: str, logfile: str) -> int:
             "--strategy-path",
             "/freqtrade/user_data/strategies",
             "--datadir",
-            "/freqtrade/user_data/data",
+            candle_datadir(exchange),
             "--timerange",
             timerange,
             "--fee",

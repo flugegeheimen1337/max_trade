@@ -13,6 +13,8 @@ def _report(profit: float, started: int) -> dict:
                 "run_id": "changes-every-run",
                 "backtest_start_time": started,
                 "backtest_end_time": started + 10,
+                "backtest_run_start_ts": started,
+                "backtest_run_end_ts": started + 3,
                 "total_trades": 1,
                 "profit_total_abs": profit,
                 "trades": [{"pair": "BTC/USDT", "profit_abs": profit}],

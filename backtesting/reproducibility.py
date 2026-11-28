@@ -8,7 +8,15 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-VOLATILE_KEYS = frozenset({"run_id", "backtest_start_time", "backtest_end_time"})
+VOLATILE_KEYS = frozenset(
+    {
+        "run_id",
+        "backtest_start_time",
+        "backtest_end_time",
+        "backtest_run_start_ts",
+        "backtest_run_end_ts",
+    }
+)
 
 
 def load_backtest_report(path: Path) -> dict[str, Any]:
